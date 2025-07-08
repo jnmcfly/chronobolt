@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - Cargo.toml
+      - src/main.rs
 
 # Berechtigungen: Die Action benötigt Schreibzugriff auf 'contents',
 # um Tags und Releases in deinem Repository erstellen zu können.
