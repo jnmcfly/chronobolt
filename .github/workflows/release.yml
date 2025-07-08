@@ -1,0 +1,97 @@
+name: Release ChronoBolt
+
+# Trigger: Diese Action läuft bei jedem Push auf den 'main' Branch.
+on:
+  push:
+    branches:
+      - main
+
+# Berechtigungen: Die Action benötigt Schreibzugriff auf 'contents',
+# um Tags und Releases in deinem Repository erstellen zu können.
+permissions:
+  contents: write
+
+jobs:
+  # Job 1: Baut die Binaries für verschiedene Betriebssysteme (Matrix-Build)
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux (GNU)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: chronobolt-linux-amd64
+          # macOS (Intel/Rosetta)
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: chronobolt-macos-amd64
+          # Windows (MSVC)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: chronobolt-windows-amd64.exe # Wichtig: .exe Endung
+
+    steps:
+      # 1. Code auschecken
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Rust Toolchain installieren (inkl. Cross-Compilation-Target)
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # 3. Projekt im Release-Modus kompilieren
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # 4. Binary umbenennen für einen klaren Download-Namen
+      - name: Rename binary
+        # Der Befehl unterscheidet sich für Windows und Unix-Systeme
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            mv target/${{ matrix.target }}/release/chronobolt.exe ${{ matrix.asset_name }}
+          else
+            mv target/${{ matrix.target }}/release/chronobolt ${{ matrix.asset_name }}
+          fi
+        shell: bash
+
+      # 5. Kompilierte Binary als Artefakt hochladen, damit der nächste Job sie verwenden kann
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  # Job 2: Erstellt die GitHub Release, nachdem alle Builds erfolgreich waren
+  release:
+    name: Create GitHub Release
+    # Hängt von erfolgreichen Builds ab
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Code auschecken, um auf das Repository zugreifen zu können
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Alle Artefakte (die Binaries aus dem Build-Job) herunterladen
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      # 3. Den neuen Tag und die GitHub Release erstellen
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # Erstellt einen einzigartigen Tag basierend auf dem Datum und der Uhrzeit
+          tag_name: "release-${{ github.sha }}"
+          # Erstellt einen Titel für die Release
+          name: "ChronoBolt Release (Build ${{ github.sha }})"
+          # Generiert automatisch die Release Notes aus den letzten Commits
+          generate_release_notes: true
+          # Hängt alle heruntergeladenen Artefakte an die Release an
+          files: "dist/**/*"

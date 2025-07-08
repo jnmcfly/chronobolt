@@ -1,0 +1,22 @@
+# Version 2 der Dependabot Konfigurations-Syntax
+version: 2
+updates:
+  # Block 1: Überprüft Rust-Abhängigkeiten (Cargo)
+  - package-ecosystem: "cargo"
+    # Sucht im Root-Verzeichnis des Projekts nach Cargo.toml
+    directory: "/"
+    # Überprüft einmal pro Woche auf Updates
+    schedule:
+      interval: "weekly"
+    # Fügt dem PR-Titel das Prefix "deps(cargo):" hinzu für bessere Lesbarkeit
+    commit-message:
+      prefix: "deps(cargo)"
+
+  # Block 2: Überprüft GitHub Actions auf neue Versionen
+  - package-ecosystem: "github-actions"
+    # Sucht im Root-Verzeichnis (nach .github/workflows/)
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps(actions)"

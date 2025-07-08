@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Check-in & Prioritäten der Woche",
+    "duration_minutes": 5
+  },
+  {
+    "name": "Review der Architektur-Roadmap",
+    "duration_minutes": 10
+  },
+  {
+    "name": "Architekturentscheidungen im Fokus",
+    "duration_minutes": 20
+  },
+  {
+    "name": "Architekturprinzipien & Leitplanken",
+    "duration_minutes": 10
+  },
+  {
+    "name": "Tech-Debatte / Deep Dive Slot",
+    "duration_minutes": 10
+  },
+  {
+    "name": "Offene Punkte & To-dos",
+    "duration_minutes": 5
+  }
+]
