@@ -208,7 +208,7 @@ fn ui(f: &mut Frame, app: &App) {
             Constraint::Min(0),
             Constraint::Length(8),
         ])
-        .split(f.size());
+        .split(f.area());
 
     draw_header(f, main_layout[0]);
     draw_slot_list(f, main_layout[1], app);
