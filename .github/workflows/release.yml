@@ -38,7 +38,7 @@ jobs:
     steps:
       # 1. Code auschecken
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 2. Rust Toolchain installieren (inkl. Cross-Compilation-Target)
       - name: Install Rust toolchain
@@ -78,7 +78,7 @@ jobs:
     steps:
       # 1. Code auschecken, um auf das Repository zugreifen zu können
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 2. Alle Artefakte (die Binaries aus dem Build-Job) herunterladen
       - name: Download all artifacts
