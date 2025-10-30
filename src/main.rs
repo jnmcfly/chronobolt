@@ -245,12 +245,22 @@ fn draw_header(f: &mut Frame, area: Rect) {
 fn draw_slot_list(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app.slots.iter().enumerate().map(|(i, slot)| {
         let (prefix, style) = if i < app.current_slot_index {
+            // Completed slots: green checkmark, dimmed text
             (Span::styled("✔ ", Style::default().fg(Color::Green)), Style::default().fg(Color::DarkGray))
         } else if i == app.current_slot_index && !app.is_finished() {
+            // Current slot: highlighted with bold text and colored background
             let symbol = if app.paused { "⏸ " } else { "▶ " };
-            (Span::styled(symbol, Style::default().fg(Color::Yellow)), Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
+            let symbol_color = if app.paused { Color::Cyan } else { Color::Yellow };
+            (
+                Span::styled(symbol, Style::default().fg(symbol_color).add_modifier(Modifier::BOLD)),
+                Style::default()
+                    .fg(Color::White)
+                    .bg(Color::Rgb(40, 40, 60))  // Darker blue-ish background
+                    .add_modifier(Modifier::BOLD)
+            )
         } else {
-            (Span::raw("  "), Style::default())
+            // Upcoming slots: default styling
+            (Span::raw("  "), Style::default().fg(Color::Gray))
         };
 
         let content = Line::from(vec![
@@ -279,17 +289,24 @@ fn draw_timers(f: &mut Frame, area: Rect, app: &App) {
     let remaining = total.saturating_sub(elapsed);
     let ratio = (elapsed.as_secs_f64() / total.as_secs_f64()).min(1.0);
 
+    // Calculate percentage
+    let percentage = (ratio * 100.0) as u8;
+
     let status_text = if app.is_finished() {
-        "Fertig!".to_string()
+        "Fertig! (100%)".to_string()
     } else if app.paused {
-        format!("Pausiert bei {}", format_duration(remaining))
+        format!("Pausiert bei {} ({}%)", format_duration(remaining), percentage)
     } else {
-        format!("Verbleibend: {}", format_duration(remaining))
+        format!("Verbleibend: {} ({}%)", format_duration(remaining), percentage)
     };
+
+    // Dynamic color based on remaining time ratio (inverted: less remaining = red)
+    let remaining_ratio = 1.0 - ratio;
+    let gauge_color = get_gauge_color(remaining_ratio);
 
     let current_gauge = Gauge::default()
         .block(Block::default().borders(Borders::ALL).title(format!("Aktueller Slot: {}", current_slot.name)))
-        .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Black))
+        .gauge_style(Style::default().fg(gauge_color).bg(Color::Black))
         .label(status_text)
         .ratio(if app.is_finished() { 1.0 } else { ratio });
     f.render_widget(current_gauge, timer_layout[0]);
@@ -303,12 +320,27 @@ fn draw_timers(f: &mut Frame, area: Rect, app: &App) {
         1.0
     };
 
+    // Calculate total percentage
+    let total_percentage = (total_ratio * 100.0) as u8;
+
     let total_gauge = Gauge::default()
         .block(Block::default().borders(Borders::ALL).title("Gesamtzeit"))
         .gauge_style(Style::default().fg(Color::Cyan).bg(Color::Black))
-        .label(format!("Verbleibend: {}", format_duration(total_remaining)))
+        .label(format!("Verbleibend: {} ({}%)", format_duration(total_remaining), total_percentage))
         .ratio(total_ratio);
     f.render_widget(total_gauge, timer_layout[1]);
+}
+
+/// Returns the appropriate gauge color based on remaining time ratio
+/// Green (>50% remaining) → Yellow (25-50%) → Red (<25%)
+fn get_gauge_color(remaining_ratio: f64) -> Color {
+    if remaining_ratio > 0.50 {
+        Color::Green
+    } else if remaining_ratio > 0.25 {
+        Color::Yellow
+    } else {
+        Color::Red
+    }
 }
 
 fn format_duration(duration: Duration) -> String {
