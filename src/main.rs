@@ -40,6 +40,7 @@ struct App {
     paused: bool,
     should_quit: bool,
     time_elapsed_when_paused: Duration,
+    show_help: bool,
 }
 
 impl App {
@@ -51,6 +52,7 @@ impl App {
             paused: false,
             should_quit: false,
             time_elapsed_when_paused: Duration::from_secs(0),
+            show_help: false,
         }
     }
 
@@ -188,6 +190,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, mut app: App) -> i
                     KeyCode::Char(' ') => app.toggle_pause(),
                     KeyCode::Char('n') => app.next_slot(),
                     KeyCode::Char('p') => app.previous_slot(),
+                    KeyCode::Char('h') | KeyCode::Char('?') => app.show_help = !app.show_help,
                     _ => {}
                 }
             }
@@ -213,6 +216,11 @@ fn ui(f: &mut Frame, app: &App) {
     draw_header(f, main_layout[0]);
     draw_slot_list(f, main_layout[1], app);
     draw_timers(f, main_layout[2], app);
+
+    // Render help overlay if active
+    if app.show_help {
+        draw_help_overlay(f);
+    }
 }
 
 fn draw_header(f: &mut Frame, area: Rect) {
@@ -308,4 +316,93 @@ fn format_duration(duration: Duration) -> String {
     let minutes = total_seconds / 60;
     let seconds = total_seconds % 60;
     format!("{:02}:{:02}", minutes, seconds)
+}
+
+fn draw_help_overlay(f: &mut Frame) {
+    // Create centered area for help overlay
+    let area = f.area();
+    let popup_width = 60.min(area.width - 4);
+    let popup_height = 18.min(area.height - 4);
+
+    let horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length((area.width - popup_width) / 2),
+            Constraint::Length(popup_width),
+            Constraint::Length((area.width - popup_width) / 2),
+        ])
+        .split(area);
+
+    let popup_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length((area.height - popup_height) / 2),
+            Constraint::Length(popup_height),
+            Constraint::Length((area.height - popup_height) / 2),
+        ])
+        .split(horizontal[1])[1];
+
+    // Create help text content
+    let help_text = vec![
+        Line::from(vec![
+            Span::styled("ChronoBolt Hilfe",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Version: ", Style::default().fg(Color::Cyan)),
+            Span::raw("1.0.0"),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled("Tastenkombinationen:",
+            Style::default().add_modifier(Modifier::BOLD))),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  q         ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::raw("Programm beenden"),
+        ]),
+        Line::from(vec![
+            Span::styled("  Space     ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::raw("Pause / Fortsetzen"),
+        ]),
+        Line::from(vec![
+            Span::styled("  n         ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::raw("Nächster Slot"),
+        ]),
+        Line::from(vec![
+            Span::styled("  p         ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::raw("Vorheriger Slot"),
+        ]),
+        Line::from(vec![
+            Span::styled("  h / ?     ", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::raw("Diese Hilfe anzeigen/schließen"),
+        ]),
+        Line::from(""),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Drücke ", Style::default().fg(Color::DarkGray)),
+            Span::styled("h", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::styled(" oder ", Style::default().fg(Color::DarkGray)),
+            Span::styled("?", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::styled(" zum Schließen", Style::default().fg(Color::DarkGray)),
+        ]),
+    ];
+
+    // Clear the background with a semi-transparent effect (using darker background)
+    let clear_block = Block::default()
+        .style(Style::default().bg(Color::Black));
+    f.render_widget(clear_block, popup_area);
+
+    // Render the help window
+    let help_paragraph = Paragraph::new(help_text)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Yellow))
+                .title(" Hilfe ")
+                .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        )
+        .style(Style::default().bg(Color::Black).fg(Color::White));
+
+    f.render_widget(help_paragraph, popup_area);
 }
