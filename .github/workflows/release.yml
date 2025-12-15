@@ -63,7 +63,7 @@ jobs:
 
       # 5. Kompilierte Binary als Artefakt hochladen, damit der nächste Job sie verwenden kann
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.asset_name }}
           path: ${{ matrix.asset_name }}
